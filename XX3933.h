@@ -75,13 +75,41 @@ public:
     };
 
 public:
-    XX3933_RECEIVE(uint8_t CS_PIN, uint8_t IRQ_PIN);
+    XX3933_RECEIVE(uint8_t CS_PIN, gpio_num_t IRQ_PIN);
     bool begin(uint32_t freq, uint16_t pattern16, WAKE_OUT tOut = TOUT_350);
 
-    void attachInterrupt(void (*isr)(), int mode = CHANGE) __attribute__((always_inline))
+    void attachInterrupt(void (*isr)()) __attribute__((always_inline))
     {
-        ::attachInterrupt(digitalPinToInterrupt(_irqPin), isr, mode);
-        // ::attachInterrupt(_pin, isr, mode); // ESP32 pakai pin langsung
+// Cek apakah bangun dari deep sleep
+#if defined(ARDUINO_AVR_UNO) || defined(ARDUINO_AVR_NANO)
+        pinMode(_irqPin, INPUT_PULLUP);
+        ::attachInterrupt(digitalPinToInterrupt(_irqPin), isr, FALLING)
+#elif defined(ESP32)
+        esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
+        if (wakeup_reason == ESP_SLEEP_WAKEUP_EXT0)
+        {
+            Serial.println("WAKE-UP MCU MODE");
+            isr();
+        }
+        else
+        {
+            ::attachInterrupt(_irqPin, isr, RISING); // ESP32 pakai pin langsung
+            Serial.println("Normal Boot MCU");
+        }
+#endif
+    }
+
+    void goToSleep()
+    {
+#if defined(ARDUINO_AVR_UNO) || defined(ARDUINO_AVR_NANO)
+        set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+        sleep_enable();
+        sleep_mode(); // 💤 Masuk sleep, akan bangun oleh ISR
+        sleep_disable();
+#elif defined(ESP32)
+        esp_sleep_enable_ext0_wakeup(_irqPin, 1); // 1 = HIGH
+        esp_deep_sleep_start();                   // Tidur di sini
+#endif
     }
 
     void setAGC(AGC_MOD agc);
@@ -91,7 +119,7 @@ public:
 private:
     SPIClass *_spi;
     SPISettings _spiSettings;
-    uint8_t _irqPin;
+    gpio_num_t _irqPin;
     int8_t _ss;
     boolean _err;
     uint32_t lastTimeRssi = 0;
