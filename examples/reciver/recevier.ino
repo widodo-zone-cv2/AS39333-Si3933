@@ -1,4 +1,4 @@
-#include <xx3933.h>
+#include <XX3933.h>
 
 #define PIN_WAKEUP 22
 AS3933 LF(5);

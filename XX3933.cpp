@@ -1,4 +1,4 @@
-#include "xx3933.h"
+#include "XX3933.h"
 
 XX3933_TRANSMIT::XX3933_TRANSMIT(uint8_t out) : _pinOut(out) {}
 
