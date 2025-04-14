@@ -1,6 +1,6 @@
 #include "xx3933.h"
 #include <SPI.h>
-#ifdef defined(ARDUINO_AVR_UNO) || defined(ARDUINO_AVR_NANO)
+#if defined(ARDUINO_AVR_UNO) || defined(ARDUINO_AVR_NANO)
 XX3933_TRANSMIT::XX3933_TRANSMIT(uint8_t out) : _pinOut(out) {}
 
 void XX3933_TRANSMIT::PWMon(uint32_t time)
@@ -252,7 +252,7 @@ void XX3933_TRANSMIT::sendCarrier(uint16_t pattern)
     XX3933_TRANSMIT::sendPattern(pattern);
 }
 
-void XX3933_TRANSMIT::sendData(uint16_t pattern16)
+void XX3933_TRANSMIT::sendData(uint16_t pattern16, uint32_t time)
 {
     if (XX3933_TRANSMIT::_async)
     {
@@ -292,7 +292,7 @@ void XX3933_TRANSMIT::end()
 // ==================================
 // ==================================
 // ==================================
-
+#if defined(ESP32)
 XX3933_RECEIVE::XX3933_RECEIVE(uint8_t CS_PIN, gpio_num_t IRQ_PIN) : _ss(CS_PIN),
                                                                      _irqPin(IRQ_PIN),
                                                                      _err(true),
@@ -527,3 +527,5 @@ void XX3933_RECEIVE::setNrOfActiveAntennas(byte number)
     }
     write(REG0, dt0);
 }
+
+#endif

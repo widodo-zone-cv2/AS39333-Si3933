@@ -9,7 +9,7 @@
  * menggunakan Timer1 untuk mengolah frequensi pemancarnya.
  * untuk mikrokotroller lainnya masih dalam tahap pengembangan.
  */
-#ifdef defined(ARDUINO_AVR_UNO) || defined(ARDUINO_AVR_NANO)
+#if defined(ARDUINO_AVR_UNO) || defined(ARDUINO_AVR_NANO)
 class XX3933_TRANSMIT
 {
 public:
@@ -17,7 +17,7 @@ public:
 
     bool begin(uint32_t freq, bool async = false);
 
-    void sendData(uint16_t pattern16);
+    void sendData(uint16_t pattern16, uint32_t time = 1500);
 
     void end();
 
@@ -40,7 +40,7 @@ private:
 };
 
 #endif
-
+#if defined(ESP32)
 class XX3933_RECEIVE
 {
 public:
@@ -102,10 +102,10 @@ public:
     void goToSleep()
     {
 #if defined(ARDUINO_AVR_UNO) || defined(ARDUINO_AVR_NANO)
-        set_sleep_mode(SLEEP_MODE_PWR_DOWN);
-        sleep_enable();
-        sleep_mode(); // 💤 Masuk sleep, akan bangun oleh ISR
-        sleep_disable();
+        // set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+        // sleep_enable();
+        // sleep_mode(); // 💤 Masuk sleep, akan bangun oleh ISR
+        // sleep_disable();
 #elif defined(ESP32)
         esp_sleep_enable_ext0_wakeup(_irqPin, 1); // 1 = HIGH
         esp_deep_sleep_start();                   // Tidur di sini
@@ -147,4 +147,6 @@ private:
     void setNrOfActiveAntennas(byte number);
 };
 
+#endif
+//
 #endif

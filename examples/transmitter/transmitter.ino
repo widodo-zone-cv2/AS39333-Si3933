@@ -1,4 +1,4 @@
-#include <xx3933.h>
+#include <XX3933.h>
 
 /**
    Pin PWM yang dapat digunakan pada libary ini:
@@ -14,7 +14,7 @@
 #define FREQ_LF 125000
 XX3933_TRANSMIT LF(PIN_TX);
 
-const uint16_t pattern = 0b1010001010110010;
+const uint16_t pattern = 0b1110001111010010;
 
 void setup()
 {
