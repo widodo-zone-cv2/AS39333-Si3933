@@ -77,6 +77,13 @@ public:
 public:
     XX3933_RECEIVE(uint8_t CS_PIN, uint8_t IRQ_PIN);
     bool begin(uint32_t freq, uint16_t pattern16, WAKE_OUT tOut = TOUT_350);
+
+    void attachInterrupt(void (*isr)(), int mode = CHANGE) __attribute__((always_inline))
+    {
+        ::attachInterrupt(digitalPinToInterrupt(_irqPin), isr, mode);
+        // ::attachInterrupt(_pin, isr, mode); // ESP32 pakai pin langsung
+    }
+
     void setAGC(AGC_MOD agc);
     void operationMode(OPT_MOD operate, TIME_OFF autoOff = TOFF_1);
     void printRSSI();
@@ -84,6 +91,7 @@ public:
 private:
     SPIClass *_spi;
     SPISettings _spiSettings;
+    uint8_t _irqPin;
     int8_t _ss;
     boolean _err;
     uint32_t lastTimeRssi = 0;

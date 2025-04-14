@@ -294,12 +294,15 @@ void XX3933_TRANSMIT::end()
 // ==================================
 
 XX3933_RECEIVE::XX3933_RECEIVE(uint8_t CS_PIN, uint8_t IRQ_PIN) : _ss(CS_PIN),
+                                                                  _irqPin(IRQ_PIN),
                                                                   _err(true),
                                                                   _spi(&SPI),
                                                                   _spiSettings(SPISettings(2000000, MSBFIRST, SPI_MODE1)) {}
 
 bool XX3933_RECEIVE::begin(uint32_t freq, uint16_t pattern16, WAKE_OUT tOut)
 {
+    pinMode(_irqPin, INPUT);
+
     pinMode(_ss, OUTPUT);
     digitalWrite(_ss, LOW);
     _spi->begin();
