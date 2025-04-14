@@ -11,7 +11,7 @@
    untuk Board selainnya saya belum melakukan pengujian.
 */
 #define PIN_TX 3
-#define FREQ_LF 1250000
+#define FREQ_LF 125000
 XX3933_TRANSMIT LF(PIN_TX);
 
 const uint16_t pattern = 0b1010001010110010;
