@@ -283,3 +283,242 @@ void XX3933_TRANSMIT::end()
     }
     digitalWrite(_pinOut, LOW);
 }
+
+// ==================================
+// ==================================
+// ==================================
+// ==================================
+// ==================================
+// ==================================
+
+XX3933_RECEIVE::XX3933_RECEIVE(uint8_t CS_PIN, uint8_t IRQ_PIN) : _ss(CS_PIN),
+                                                                  _err(true),
+                                                                  _spi(&SPI),
+                                                                  _spiSettings(SPISettings(2000000, MSBFIRST, SPI_MODE1)) {}
+
+void XX3933_RECEIVE::begin(uint32_t freq, uint16_t pattern16, WAKE_OUT tOut)
+{
+    pinMode(_ss, OUTPUT);
+    digitalWrite(_ss, LOW);
+    _spi->begin();
+
+    directCMD(0b11000100); // preset default
+    setPattern(pattern16, tOut);
+
+    directCMD(0b11000000); // clear wake up
+
+    return true;
+}
+
+void XX3933_RECEIVE::setAGC(AGC_MOD agc)
+{
+    byte dt1 = read(REG1);
+    switch (agc)
+    {
+    case AGC_AUTO:
+        bitSet(dt1, 5); // AGC_UD
+        break;
+    case AGC_DOWN:
+        bitClear(dt1, 5); // AGC_UD
+        break;
+    }
+
+    write(REG1, dt1);
+}
+
+void XX3933_RECEIVE::operationMode(OPT_MOD operate, TIME_OFF autoOff = TOFF_1)
+{
+    byte dt0 = read(REG0);
+
+    switch (operate)
+    {
+    case OPT_STD:
+        setNrOfActiveAntennas(3);
+        bitClear(dt0, 4);
+        bitClear(dt0, 5);
+        break;
+    case OPT_SCAN:
+        bitSet(dt0, 4);
+        bitClear(dt0, 5);
+        break;
+    case OPT_ONOF:
+        setNrOfActiveAntennas(3);
+        bitSet(dt0, 5);
+        // set time On/OFF mode
+        byte dt4 = read(REG4);
+        switch (autoOff)
+        {
+        case TOFF_1:
+            bitClear(dt4, 6);
+            bitClear(dt4, 7);
+            break;
+        case TOFF_2:
+            bitSet(dt4, 6);
+            bitClear(dt4, 7);
+            break;
+        case TOFF_4:
+            bitClear(dt4, 6);
+            bitSet(dt4, 7);
+            break;
+        case TOFF_8:
+            bitSet(dt4, 6);
+            bitSet(dt4, 7);
+            break;
+        }
+        write(REG4, dt4);
+        break;
+    }
+    write(REG0, dt0);
+}
+
+void XX3933_RECEIVE::printRSSI()
+{
+    uint8_t rssi1 = read(10);
+    uint8_t rssi2 = read(11);
+    uint8_t rssi3 = read(12);
+    if (millis() - lastTimeRssi > 50)
+    {
+        Serial.print(" \tRSSI ");
+
+        Serial.print(" | CH1: ");
+        Serial.print(rssi1);
+        Serial.print(" | CH2: ");
+        Serial.print(rssi2);
+        Serial.print(" | CH3: ");
+        Serial.print(rssi3);
+        Serial.println("");
+        lastTimeRssi = millis();
+    }
+}
+
+void XX3933_RECEIVE::directCMD(byte cmd)
+{
+    digitalWrite(_ss, HIGH);
+    SPI.beginTransaction(_spiSettings);
+    SPI.transfer(0xC0 | cmd);
+    SPI.endTransaction();
+    digitalWrite(_ss, LOW);
+}
+
+byte XX3933_RECEIVE::read(byte reg)
+{
+    byte retVal;
+    digitalWrite(_ss, HIGH);
+    SPI.beginTransaction(_spiSettings);
+    SPI.transfer(reg | 0x40);
+    retVal = SPI.transfer(0);
+    SPI.endTransaction();
+    digitalWrite(_ss, LOW);
+    return retVal;
+}
+
+void XX3933_RECEIVE::write(byte reg, byte data)
+{
+    digitalWrite(_ss, HIGH);
+    SPI.beginTransaction(_spiSettings);
+    SPI.transfer(reg & 0x3F);
+    SPI.transfer(data);
+    SPI.endTransaction();
+    digitalWrite(_ss, LOW);
+}
+
+uint16_t XX3933_RECEIVE::invert_bits(uint16_t x)
+{
+    return ~x & 0xFFFF;
+}
+
+uint16_t XX3933_RECEIVE::shiftCustom(uint16_t value)
+{
+    uint16_t result = value >> 1;
+    if (value & 0x8000)
+        result |= 0x0001;
+    return result & 0x7FFF; // pastikan MSB = 0
+}
+
+void XX3933_RECEIVE::setPattern(uint16_t pattern16, WAKE_OUT tO)
+{
+    byte dt0 = read(REG0);
+    bitSet(dt0, 7); // PAT32
+    write(REG0, dt0);
+    byte dt1 = read(REG1);
+    bitSet(dt1, 1);   // EN_WPAT
+    bitClear(dt1, 2); // EN_WPAT
+    write(REG1, dt1);
+
+    uint16_t hasil = shiftCustom(pattern16);
+    uint16_t invr = invert_bits(hasil);
+    uint8_t patt_r6 = (invr >> 8) & 0xFF; // ambil 8 bit atas
+    uint8_t patt_r5 = invr & 0xFF;        // ambil 8 bit bawah
+    write(0x05, patt_r5);
+    write(0x06, patt_r6);
+
+    byte dt7 = read(REG7);
+    switch (tO)
+    {
+    case TOUT_NONE:
+        bitClear(dt7, 5);
+        bitClear(dt7, 6);
+        bitClear(dt7, 7);
+        break;
+    case TOUT_50:
+        bitSet(dt7, 5);
+        bitClear(dt7, 6);
+        bitClear(dt7, 7);
+        break;
+    case TOUT_100:
+        bitClear(dt7, 5);
+        bitSet(dt7, 6);
+        bitClear(dt7, 7);
+        break;
+    case TOUT_150:
+        bitClear(dt7, 5);
+        bitSet(dt7, 6);
+        bitSet(dt7, 7);
+        break;
+    case TOUT_200:
+        bitSet(dt7, 5);
+        bitClear(dt7, 6);
+        bitClear(dt7, 7);
+        break;
+    case TOUT_250:
+        bitSet(dt7, 5);
+        bitClear(dt7, 6);
+        bitSet(dt7, 7);
+        break;
+    case TOUT_300:
+        bitSet(dt7, 5);
+        bitSet(dt7, 6);
+        bitClear(dt7, 7);
+        break;
+    case TOUT_350:
+        bitSet(dt7, 5);
+        bitSet(dt7, 6);
+        bitSet(dt7, 7);
+        break;
+    }
+    write(REG7, dt7);
+}
+
+void XX3933_RECEIVE::setNrOfActiveAntennas(byte number)
+{
+    byte dt0 = read(REG0);
+    switch (number)
+    {
+    case 1:
+        bitSet(dt0, 1);
+        bitClear(dt0, 2);
+        bitClear(dt0, 3);
+        break;
+    case 2:
+        bitSet(dt0, 1);
+        bitClear(dt0, 2);
+        bitSet(dt0, 3);
+        break;
+    case 3:
+        bitSet(dt0, 1);
+        bitSet(dt0, 2);
+        bitSet(dt0, 3);
+        break;
+    }
+    write(REG0, dt0);
+}

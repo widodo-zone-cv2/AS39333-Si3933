@@ -38,4 +38,43 @@ private:
     void sendCarrier(uint16_t pattern);
 };
 
+class XX3933_RECEIVE
+{
+public:
+    XX3933_RECEIVE(uint8_t CS_PIN, uint8_t IRQ_PIN);
+    bool begin(uint32_t freq, uint16_t pattern16, WAKE_OUT tOut = TOUT_350);
+    void setAGC(AGC_MOD agc);
+    void operationMode(OPT_MOD operate, TIME_OFF autoOff = TOFF_1);
+    void printRSSI();
+
+private:
+    SPIClass *_spi;
+    SPISettings _spiSettings;
+    int8_t _ss;
+    boolean _err;
+    uint32_t lastTimeRssi = 0;
+    //
+    enum REGISTER
+    {
+        REG0 = 0x00,
+        REG1 = 0x01,
+        REG2 = 0x02,
+        REG3 = 0x03,
+        REG4 = 0x04,
+        REG5 = 0x05,
+        REG6 = 0x06,
+        REG7 = 0x07,
+        REG8 = 0x08,
+        REG21 = 0x15,
+    };
+    //
+    void directCMD(byte cmd);
+    byte read(byte reg);
+    void write(byte reg, byte data);
+    uint16_t invert_bits(uint16_t x);
+    uint16_t shiftCustom(uint16_t value);
+    void setPattern(uint16_t pattern16, WAKE_OUT tO);
+    void setNrOfActiveAntennas(byte number);
+};
+
 #endif
