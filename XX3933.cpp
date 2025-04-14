@@ -1,5 +1,6 @@
-#include "XX3933.h"
-
+#include "xx3933.h"
+#include <SPI.h>
+#ifdef defined(ARDUINO_AVR_UNO) || defined(ARDUINO_AVR_NANO)
 XX3933_TRANSMIT::XX3933_TRANSMIT(uint8_t out) : _pinOut(out) {}
 
 void XX3933_TRANSMIT::PWMon(uint32_t time)
@@ -284,6 +285,7 @@ void XX3933_TRANSMIT::end()
     digitalWrite(_pinOut, LOW);
 }
 
+#endif
 // ==================================
 // ==================================
 // ==================================
@@ -296,7 +298,7 @@ XX3933_RECEIVE::XX3933_RECEIVE(uint8_t CS_PIN, uint8_t IRQ_PIN) : _ss(CS_PIN),
                                                                   _spi(&SPI),
                                                                   _spiSettings(SPISettings(2000000, MSBFIRST, SPI_MODE1)) {}
 
-void XX3933_RECEIVE::begin(uint32_t freq, uint16_t pattern16, WAKE_OUT tOut)
+bool XX3933_RECEIVE::begin(uint32_t freq, uint16_t pattern16, WAKE_OUT tOut)
 {
     pinMode(_ss, OUTPUT);
     digitalWrite(_ss, LOW);
@@ -326,7 +328,7 @@ void XX3933_RECEIVE::setAGC(AGC_MOD agc)
     write(REG1, dt1);
 }
 
-void XX3933_RECEIVE::operationMode(OPT_MOD operate, TIME_OFF autoOff = TOFF_1)
+void XX3933_RECEIVE::operationMode(OPT_MOD operate, TIME_OFF autoOff)
 {
     byte dt0 = read(REG0);
 
@@ -394,9 +396,9 @@ void XX3933_RECEIVE::printRSSI()
 void XX3933_RECEIVE::directCMD(byte cmd)
 {
     digitalWrite(_ss, HIGH);
-    SPI.beginTransaction(_spiSettings);
-    SPI.transfer(0xC0 | cmd);
-    SPI.endTransaction();
+    _spi->beginTransaction(_spiSettings);
+    _spi->transfer(0xC0 | cmd);
+    _spi->endTransaction();
     digitalWrite(_ss, LOW);
 }
 
@@ -404,10 +406,10 @@ byte XX3933_RECEIVE::read(byte reg)
 {
     byte retVal;
     digitalWrite(_ss, HIGH);
-    SPI.beginTransaction(_spiSettings);
-    SPI.transfer(reg | 0x40);
-    retVal = SPI.transfer(0);
-    SPI.endTransaction();
+    _spi->beginTransaction(_spiSettings);
+    _spi->transfer(reg | 0x40);
+    retVal = _spi->transfer(0);
+    _spi->endTransaction();
     digitalWrite(_ss, LOW);
     return retVal;
 }
@@ -415,10 +417,10 @@ byte XX3933_RECEIVE::read(byte reg)
 void XX3933_RECEIVE::write(byte reg, byte data)
 {
     digitalWrite(_ss, HIGH);
-    SPI.beginTransaction(_spiSettings);
-    SPI.transfer(reg & 0x3F);
-    SPI.transfer(data);
-    SPI.endTransaction();
+    _spi->beginTransaction(_spiSettings);
+    _spi->transfer(reg & 0x3F);
+    _spi->transfer(data);
+    _spi->endTransaction();
     digitalWrite(_ss, LOW);
 }
 

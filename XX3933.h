@@ -1,7 +1,7 @@
 #ifndef XX3933_LIB_H
 #define XX3933_LIB_H
 #include "Arduino.h"
-
+#include <SPI.h>
 /**
  * @warning
  * Library Pemancar gelombang Modulasi untuk AS3933/Si3933 ini
@@ -9,6 +9,7 @@
  * menggunakan Timer1 untuk mengolah frequensi pemancarnya.
  * untuk mikrokotroller lainnya masih dalam tahap pengembangan.
  */
+#ifdef defined(ARDUINO_AVR_UNO) || defined(ARDUINO_AVR_NANO)
 class XX3933_TRANSMIT
 {
 public:
@@ -38,8 +39,41 @@ private:
     void sendCarrier(uint16_t pattern);
 };
 
+#endif
+
 class XX3933_RECEIVE
 {
+public:
+    enum OPT_MOD // Mode Operasi Chip
+    {
+        OPT_STD = 0,
+        OPT_SCAN = 1,
+        OPT_ONOF = 2
+    };
+    enum TIME_OFF // On/Off Operate mode
+    {
+        TOFF_1, // 1 ms
+        TOFF_2, // 2ms
+        TOFF_4, // 4ms
+        TOFF_8, // 8ms
+    };
+    enum AGC_MOD // mode AGC
+    {
+        AGC_AUTO,
+        AGC_DOWN
+    };
+    enum WAKE_OUT // Time Out/clear Wake-up
+    {
+        TOUT_NONE = 0,
+        TOUT_50,
+        TOUT_100,
+        TOUT_150,
+        TOUT_200,
+        TOUT_250,
+        TOUT_300,
+        TOUT_350,
+    };
+
 public:
     XX3933_RECEIVE(uint8_t CS_PIN, uint8_t IRQ_PIN);
     bool begin(uint32_t freq, uint16_t pattern16, WAKE_OUT tOut = TOUT_350);
